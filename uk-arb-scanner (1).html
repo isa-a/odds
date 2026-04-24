@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>UK ARB SCANNER — Auto Live Odds</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#060a0e;font-family:'Courier New',Courier,monospace;color:#00e5ff;min-height:100vh;padding:16px}
+:root{
+  --g:#00e5ff;--dim:rgba(0,229,255,0.10);--dim2:rgba(0,229,255,0.05);
+  --border:rgba(0,229,255,0.20);--red:#ff4f4f;--amber:#ffb700;--green:#00e676;
+}
+.shell{max-width:1100px;margin:0 auto;background:#080c10;border:1px solid var(--border);border-radius:10px;overflow:hidden}
+.topbar{background:#0b1015;border-bottom:1px solid var(--border);padding:11px 18px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px}
+.logo{color:var(--g);font-size:13px;font-weight:700;letter-spacing:3px}
+.pills{display:flex;gap:7px;flex-wrap:wrap}
+.pill{font-size:9px;padding:3px 9px;border-radius:20px;border:1px solid var(--border);color:var(--g);background:var(--dim2);letter-spacing:1px;display:flex;align-items:center;gap:5px}
+.dot{width:5px;height:5px;border-radius:50%;background:var(--green);animation:pulse 1.5s infinite}
+.dot.red{background:var(--red)}.dot.amber{background:var(--amber)}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.3}}
+.setup{background:rgba(255,183,0,0.04);border-bottom:1px solid rgba(255,183,0,0.2);padding:12px 18px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.slabel{font-size:9px;color:var(--amber);letter-spacing:1px;white-space:nowrap}
+.sinp{flex:1;min-width:220px;background:rgba(255,183,0,0.06);border:1px solid rgba(255,183,0,0.3);border-radius:4px;color:var(--amber);font-family:'Courier New',monospace;font-size:11px;padding:6px 10px;outline:none}
+.sinp:focus{border-color:var(--amber)}
+.sinp::placeholder{color:rgba(255,183,0,0.3)}
+.sbtn2{background:rgba(255,183,0,0.12);border:1px solid rgba(255,183,0,0.4);border-radius:4px;color:var(--amber);font-family:'Courier New',monospace;font-size:10px;letter-spacing:1px;padding:6px 14px;cursor:pointer;white-space:nowrap}
+.sbtn2:hover{background:rgba(255,183,0,0.22)}
+.kstatus{font-size:9px;letter-spacing:1px;white-space:nowrap}
+.kstatus.ok{color:var(--green)}.kstatus.no{color:rgba(255,183,0,0.6)}
+.controls{background:#0b1015;border-bottom:1px solid var(--border);padding:10px 18px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.ctl-label{font-size:9px;color:rgba(0,229,255,0.5);letter-spacing:1px;white-space:nowrap}
+.ctl-inp{background:var(--dim2);border:1px solid var(--border);border-radius:4px;color:var(--g);font-family:'Courier New',monospace;font-size:11px;padding:5px 9px;outline:none}
+.ctl-inp:focus{border-color:var(--g)}
+select.ctl-inp{cursor:pointer;max-width:220px}
+select.ctl-inp option{background:#0b1015}
+.scan-btn{background:var(--g);color:#080c10;border:none;border-radius:4px;font-family:'Courier New',monospace;font-size:11px;font-weight:700;letter-spacing:2px;padding:7px 18px;cursor:pointer;transition:opacity 0.15s;white-space:nowrap}
+.scan-btn:hover{opacity:0.85}
+.scan-btn:disabled{opacity:0.35;cursor:not-allowed}
+.stop-btn{background:rgba(255,79,79,0.12);border:1px solid rgba(255,79,79,0.4);border-radius:4px;color:var(--red);font-family:'Courier New',monospace;font-size:11px;letter-spacing:1px;padding:7px 14px;cursor:pointer;display:none;white-space:nowrap}
+.stop-btn:hover{background:rgba(255,79,79,0.22)}
+.countdown{font-size:10px;color:rgba(0,229,255,0.4);letter-spacing:1px;margin-left:auto}
+.stats-row{display:grid;grid-template-columns:repeat(5,1fr);gap:1px;background:var(--border);border-bottom:1px solid var(--border)}
+.stat{background:#080c10;padding:9px 10px;text-align:center}
+.stat-label{font-size:7px;color:rgba(0,229,255,0.45);letter-spacing:1px;margin-bottom:2px}
+.stat-val{font-size:15px;color:var(--g);font-weight:700}
+.stat-val.green{color:var(--green)}.stat-val.amber{color:var(--amber)}
+.main{display:flex;min-height:500px}
+.opps-panel{flex:1;border-right:1px solid var(--border);display:flex;flex-direction:column;min-width:0}
+.panel-hdr{background:#0b1015;border-bottom:1px solid var(--border);padding:8px 14px;font-size:8px;color:rgba(0,229,255,0.5);letter-spacing:2px;display:flex;align-items:center;justify-content:space-between}
+.opps-list{flex:1;overflow-y:auto;padding:10px;display:flex;flex-direction:column;gap:8px;max-height:480px;min-height:200px}
+.empty-state{display:flex;flex-direction:column;align-items:center;justify-content:center;height:200px;color:rgba(0,229,255,0.25);font-size:11px;letter-spacing:1px;text-align:center;gap:10px}
+.scan-anim{font-size:28px;animation:fade 2s linear infinite}
+@keyframes fade{0%{opacity:0.2}50%{opacity:1}100%{opacity:0.2}}
+.opp-card{background:var(--dim2);border:1px solid var(--border);border-radius:5px;padding:10px 12px;cursor:pointer;transition:border-color 0.15s}
+.opp-card:hover{border-color:rgba(0,229,255,0.5)}
+.opp-card.arb{border-left:3px solid var(--green)}
+.opp-card.close{border-left:3px solid var(--amber)}
+.opp-card.selected{border-color:var(--g);background:var(--dim)}
+.opp-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:5px;gap:6px}
+.opp-name{font-size:11px;color:var(--g);font-weight:700;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.opp-tag{font-size:8px;padding:2px 7px;border-radius:3px;letter-spacing:1px;white-space:nowrap}
+.tag-arb{background:rgba(0,230,118,0.12);color:var(--green);border:1px solid rgba(0,230,118,0.3)}
+.tag-close{background:rgba(255,183,0,0.1);color:var(--amber);border:1px solid rgba(255,183,0,0.3)}
+.tag-no{background:rgba(255,79,79,0.08);color:rgba(255,79,79,0.6);border:1px solid rgba(255,79,79,0.2)}
+.opp-meta{font-size:9px;color:rgba(0,229,255,0.45);margin-bottom:5px}
+.opp-odds{display:flex;gap:5px;flex-wrap:wrap}
+.odds-chip{font-size:9px;padding:2px 7px;background:rgba(0,229,255,0.06);border:1px solid var(--border);border-radius:3px;color:rgba(0,229,255,0.7)}
+.odds-chip.best{border-color:var(--g);color:var(--g);background:var(--dim)}
+.opp-edge{font-size:9px;margin-top:5px}
+.analysis-panel{width:320px;flex-shrink:0;display:flex;flex-direction:column}
+.analysis-area{flex:1;overflow-y:auto;padding:12px;max-height:460px;min-height:200px;display:flex;flex-direction:column;gap:10px}
+.msg{display:flex;gap:7px;align-items:flex-start}
+.mi{width:20px;height:20px;border-radius:3px;font-size:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-weight:700;margin-top:1px}
+.mi.bot{background:var(--dim);color:var(--g);border:1px solid var(--border)}
+.mb{font-size:10px;line-height:1.7;color:rgba(0,229,255,0.82);word-break:break-word}
+.result-box{background:var(--dim2);border:1px solid var(--border);border-radius:4px;padding:12px;font-size:10px;line-height:1.8;color:rgba(0,229,255,0.88);word-break:break-word}
+.result-box.arb{border-left:3px solid var(--green)}
+.result-box.close{border-left:3px solid var(--amber)}
+.result-box.no{border-left:3px solid var(--red)}
+.result-row{display:flex;justify-content:space-between;margin-bottom:3px}
+.result-label{color:rgba(0,229,255,0.5);font-size:9px}
+.result-val{color:var(--g);font-weight:700}
+.result-val.green{color:var(--green)}.result-val.amber{color:var(--amber)}.result-val.red{color:var(--red)}
+.stake-box{background:rgba(0,229,255,0.04);border:1px solid var(--border);border-radius:3px;padding:8px;margin:6px 0}
+.stake-row{display:flex;justify-content:space-between;font-size:10px;margin-bottom:4px}
+.divline{height:1px;background:var(--border);margin:8px 0}
+.send-btn{width:100%;background:var(--g);color:#080c10;border:none;border-radius:4px;font-family:'Courier New',monospace;font-size:11px;font-weight:700;letter-spacing:2px;padding:10px;cursor:pointer;margin-top:8px;transition:opacity 0.15s}
+.send-btn:hover{opacity:0.85}
+.copied-note{background:rgba(0,229,255,0.08);border:1px solid var(--g);border-radius:4px;padding:10px;font-size:10px;color:var(--g);line-height:1.7;margin-top:8px}
+.log-bar{background:#0b1015;border-top:1px solid var(--border);padding:6px 14px;display:flex;align-items:center;gap:8px;overflow:hidden}
+.log-label{font-size:8px;color:rgba(0,229,255,0.4);letter-spacing:1px;white-space:nowrap}
+.log-text{font-size:9px;color:rgba(0,229,255,0.5);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1}
+@media(max-width:700px){
+  .main{flex-direction:column}
+  .analysis-panel{width:100%;border-top:1px solid var(--border)}
+  .stats-row{grid-template-columns:repeat(3,1fr)}
+}
+</style>
+</head>
+<body>
+<div class="shell">
+
+  <div class="topbar">
+    <span class="logo">UK//ARB SCANNER</span>
+    <div class="pills">
+      <span class="pill"><span class="dot" id="scan-dot"></span><span id="scan-status-txt">IDLE</span></span>
+      <span class="pill">THE ODDS API</span>
+      <span class="pill">NO CLAUDE CREDITS NEEDED</span>
+    </div>
+  </div>
+
+  <div class="setup">
+    <span class="slabel">⚡ ODDS API KEY:</span>
+    <input class="sinp" id="odds-key" type="password" placeholder="Paste key from the-odds-api.com — free tier works fine"/>
+    <button class="sbtn2" onclick="saveKey()">SAVE + LOAD SPORTS</button>
+    <span class="kstatus no" id="key-status">NO KEY — get free at the-odds-api.com</span>
+  </div>
+
+  <div class="controls">
+    <span class="ctl-label">SPORT:</span>
+    <select class="ctl-inp" id="sport-sel"><option value="">— save key first —</option></select>
+    <span class="ctl-label">BANKROLL (£):</span>
+    <input class="ctl-inp" id="bankroll" type="number" value="4" min="0.01" step="0.01" style="width:75px"/>
+    <span class="ctl-label">AUTO-SCAN:</span>
+    <select class="ctl-inp" id="interval-sel">
+      <option value="0">Off</option>
+      <option value="60">Every 1 min</option>
+      <option value="120">Every 2 min</option>
+      <option value="300">Every 5 min</option>
+    </select>
+    <button class="scan-btn" id="scan-btn" onclick="startScan()">▶ SCAN NOW</button>
+    <button class="stop-btn" id="stop-btn" onclick="stopAuto()">■ STOP</button>
+    <span class="countdown" id="countdown"></span>
+  </div>
+
+  <div class="stats-row">
+    <div class="stat"><div class="stat-label">MARKETS SCANNED</div><div class="stat-val" id="s-scanned">0</div></div>
+    <div class="stat"><div class="stat-label">ARB OPPORTUNITIES</div><div class="stat-val green" id="s-arbs">0</div></div>
+    <div class="stat"><div class="stat-label">CLOSE CALLS</div><div class="stat-val amber" id="s-close">0</div></div>
+    <div class="stat"><div class="stat-label">BEST EDGE</div><div class="stat-val green" id="s-edge">—</div></div>
+    <div class="stat"><div class="stat-label">API CALLS LEFT</div><div class="stat-val" id="s-calls">—</div></div>
+  </div>
+
+  <div class="main">
+
+    <div class="opps-panel">
+      <div class="panel-hdr">
+        <span>LIVE OPPORTUNITIES — best first</span>
+        <span id="opp-count" style="color:rgba(0,229,255,0.4)">0 markets</span>
+      </div>
+      <div class="opps-list" id="opps-list">
+        <div class="empty-state">
+          <span class="scan-anim">◎</span>
+          <span>Save your Odds API key then hit SCAN NOW</span>
+          <span style="font-size:9px;color:rgba(0,229,255,0.2)">Scans Bet365 · William Hill · Betway · Paddy Power · Betfair simultaneously</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="analysis-panel">
+      <div class="panel-hdr"><span>ANALYSIS</span><span style="color:rgba(0,229,255,0.4)">click any market</span></div>
+      <div class="analysis-area" id="analysis-area">
+        <div class="msg">
+          <div class="mi bot">ARB</div>
+          <div class="mb">
+            Click any market on the left for instant stake calculations.<br><br>
+            Hit <strong>SEND TO CLAUDE FOR ANALYSIS</strong> to copy the full data to your clipboard — then paste it into this chat window and I'll analyse it immediately. No API credits needed.
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="log-bar">
+    <span class="log-label">LOG:</span>
+    <span class="log-text" id="log-text">Waiting...</span>
+  </div>
+
+</div>
+
+<script>
+let oddsKey = localStorage.getItem('arb_odds_key') || '';
+let allOpps = [], selectedOpp = null;
+let totalScanned = 0, totalArbs = 0, totalClose = 0, bestEdge = 0;
+let countdownTimer = null, nextScanIn = 0;
+const BOOKIES = 'bet365,williamhill,betway,paddypower,betfair_ex_eu,unibet,skybet,coral,ladbrokes';
+const PRIORITY = ['soccer_epl','soccer_england_championship','soccer_fa_cup','soccer_league_cup',
+  'soccer_uefa_champs_league','basketball_nba','americanfootball_nfl','tennis_atp','tennis_wta',
+  'soccer_spain_la_liga','soccer_germany_bundesliga','soccer_france_ligue_one','soccer_italy_serie_a'];
+
+window.onload = () => {
+  if (oddsKey) {
+    document.getElementById('odds-key').value = oddsKey;
+    setStatus('✓ SAVED — loading sports...', true);
+    loadSports();
+  }
+};
+
+function log(msg) { document.getElementById('log-text').textContent = `[${new Date().toLocaleTimeString()}] ${msg}`; }
+function setStatus(txt, ok) {
+  const el = document.getElementById('key-status');
+  el.textContent = txt; el.className = 'kstatus ' + (ok ? 'ok' : 'no');
+}
+function setScanDot(state) {
+  document.getElementById('scan-dot').className = 'dot' + (state==='error'?' red':state==='scanning'?' amber':'');
+  document.getElementById('scan-status-txt').textContent = state==='scanning'?'SCANNING':state==='error'?'ERROR':state==='ok'?'LIVE':'IDLE';
+}
+
+async function saveKey() {
+  const k = document.getElementById('odds-key').value.trim();
+  if (!k) { alert('Paste your Odds API key first'); return; }
+  oddsKey = k; localStorage.setItem('arb_odds_key', k);
+  setStatus('✓ SAVED — loading sports...', true);
+  await loadSports();
+}
+
+async function loadSports() {
+  log('Loading available sports...');
+  try {
+    const res = await fetch(`https://api.the-odds-api.com/v4/sports/?apiKey=${oddsKey}`);
+    if (!res.ok) { const t = await res.text(); throw new Error(`${res.status}: ${t}`); }
+    const sports = await res.json();
+    const active = sports.filter(s => s.active);
+    const sorted = [...active.filter(s => PRIORITY.includes(s.key)), ...active.filter(s => !PRIORITY.includes(s.key))];
+    const sel = document.getElementById('sport-sel');
+    sel.innerHTML = '';
+    for (const s of sorted) {
+      const o = document.createElement('option');
+      o.value = s.key;
+      o.textContent = s.title + (s.description ? ` (${s.description})` : '');
+      sel.appendChild(o);
+    }
+    setStatus(`✓ SAVED — ${active.length} sports loaded`, true);
+    log(`${active.length} active sports loaded. Select one and hit SCAN NOW.`);
+  } catch(e) {
+    log(`Error: ${e.message}`);
+    setStatus('⚠ Key error — check it at the-odds-api.com', false);
+  }
+}
+
+async function startScan() {
+  if (!oddsKey) { alert('Enter your Odds API key first'); return; }
+  const sport = document.getElementById('sport-sel').value;
+  if (!sport) { alert('Select a sport first'); return; }
+  document.getElementById('scan-btn').disabled = true;
+  setScanDot('scanning');
+  log(`Fetching odds for ${sport}...`);
+  try {
+    const url = `https://api.the-odds-api.com/v4/sports/${sport}/odds/?apiKey=${oddsKey}&regions=uk&markets=h2h&oddsFormat=decimal&bookmakers=${BOOKIES}`;
+    const res = await fetch(url);
+    if (!res.ok) { const t = await res.text(); throw new Error(`${res.status}: ${t}`); }
+    const rem = res.headers.get('x-requests-remaining');
+    if (rem) document.getElementById('s-calls').textContent = rem;
+    const data = await res.json();
+    log(`Got ${data.length} markets. Scanning...`);
+    processMarkets(data);
+    const interval = parseInt(document.getElementById('interval-sel').value);
+    if (interval > 0) startAutoScan(interval);
+    else document.getElementById('scan-btn').disabled = false;
+    setScanDot('ok');
+  } catch(e) {
+    log(`ERROR: ${e.message}`);
+    setScanDot('error');
+    document.getElementById('scan-btn').disabled = false;
+  }
+}
+
+function startAutoScan(sec) {
+  clearInterval(countdownTimer);
+  document.getElementById('stop-btn').style.display = 'inline-block';
+  document.getElementById('scan-btn').disabled = true;
+  nextScanIn = sec;
+  countdownTimer = setInterval(() => {
+    nextScanIn--;
+    document.getElementById('countdown').textContent = `Next scan in ${nextScanIn}s`;
+    if (nextScanIn <= 0) { nextScanIn = sec; startScan(); }
+  }, 1000);
+}
+
+function stopAuto() {
+  clearInterval(countdownTimer);
+  document.getElementById('stop-btn').style.display = 'none';
+  document.getElementById('scan-btn').disabled = false;
+  document.getElementById('countdown').textContent = '';
+  setScanDot('idle');
+}
+
+function processMarkets(markets) {
+  allOpps = [];
+  let arbN = 0, closeN = 0;
+  const bankroll = parseFloat(document.getElementById('bankroll').value) || 4;
+
+  for (const market of markets) {
+    if (!market.bookmakers || market.bookmakers.length < 2) continue;
+    totalScanned++;
+    const best = {};
+    for (const bookie of market.bookmakers) {
+      for (const mkt of bookie.markets) {
+        if (mkt.key !== 'h2h') continue;
+        for (const outcome of mkt.outcomes) {
+          const isBF = bookie.key === 'betfair_ex_eu';
+          const eff = isBF ? 1 + (outcome.price - 1) * 0.98 : outcome.price;
+          if (!best[outcome.name] || eff > best[outcome.name].effOdds) {
+            best[outcome.name] = { effOdds: eff, rawOdds: outcome.price, bookmaker: bookie.title, key: bookie.key, isBF };
+          }
+        }
+      }
+    }
+    const outcomes = Object.keys(best);
+    if (outcomes.length < 2) continue;
+    const cip = outcomes.reduce((s, o) => s + 1/best[o].effOdds, 0);
+    const edge = (1/cip - 1) * 100;
+    const isArb = cip < 0.999, isClose = !isArb && cip < 1.015;
+    const stakes = {};
+    for (const o of outcomes) stakes[o] = bankroll * (1/best[o].effOdds) / cip;
+    const profit = bankroll * (1/cip - 1);
+    const opp = { id: market.id, name: `${market.home_team} vs ${market.away_team}`, sport: market.sport_title,
+      commenceTime: market.commence_time, best, outcomes, cip, edge, stakes, profit, bankroll, isArb, isClose };
+    allOpps.push(opp);
+    if (isArb) { arbN++; totalArbs++; }
+    if (isClose) { closeN++; totalClose++; }
+    if (isArb && edge > bestEdge) { bestEdge = edge; document.getElementById('s-edge').textContent = '+' + edge.toFixed(3) + '%'; }
+  }
+
+  allOpps.sort((a,b) => {
+    if (a.isArb && !b.isArb) return -1; if (!a.isArb && b.isArb) return 1;
+    if (a.isClose && !b.isClose) return -1; if (!a.isClose && b.isClose) return 1;
+    return b.edge - a.edge;
+  });
+
+  document.getElementById('s-scanned').textContent = totalScanned;
+  document.getElementById('s-arbs').textContent = totalArbs;
+  document.getElementById('s-close').textContent = totalClose;
+  document.getElementById('opp-count').textContent = allOpps.length + ' markets';
+  renderOpps();
+  log(`Done. ${arbN} arbs, ${closeN} close calls across ${allOpps.length} markets.`);
+  if (arbN > 0) selectOpp(allOpps.find(o => o.isArb));
+}
+
+function renderOpps() {
+  const list = document.getElementById('opps-list');
+  if (!allOpps.length) {
+    list.innerHTML = `<div class="empty-state"><span>No markets found for this sport.</span><span style="font-size:9px;color:rgba(0,229,255,0.2)">Try another sport — not all have UK bookmaker coverage.</span></div>`;
+    return;
+  }
+  list.innerHTML = '';
+  for (const opp of allOpps) {
+    const card = document.createElement('div');
+    card.className = 'opp-card' + (opp.isArb?' arb':opp.isClose?' close':'');
+    if (selectedOpp && selectedOpp.id === opp.id) card.classList.add('selected');
+    const tag = opp.isArb ? `<span class="opp-tag tag-arb">✓ ARB</span>` : opp.isClose ? `<span class="opp-tag tag-close">~ CLOSE</span>` : `<span class="opp-tag tag-no">✗ NO</span>`;
+    const dt = new Date(opp.commenceTime);
+    const oddsHtml = opp.outcomes.map(o => `<span class="odds-chip${opp.isArb||opp.isClose?' best':''}">${o.length>13?o.substring(0,13)+'…':o}: ${opp.best[o].effOdds.toFixed(2)} @ ${opp.best[o].bookmaker}</span>`).join('');
+    const ec = opp.isArb?'var(--green)':opp.isClose?'var(--amber)':'rgba(255,79,79,0.6)';
+    const et = opp.isArb ? `Edge: <span style="color:${ec}">+${opp.edge.toFixed(3)}%</span> · Profit: <span style="color:var(--green)">£${opp.profit.toFixed(4)}</span>` : `Combined: <span style="color:${ec}">${(opp.cip*100).toFixed(2)}%</span>`;
+    card.innerHTML = `<div class="opp-top"><span class="opp-name">${opp.name}</span>${tag}</div><div class="opp-meta">${opp.sport} · ${dt.toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short'})} ${dt.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'})}</div><div class="opp-odds">${oddsHtml}</div><div class="opp-edge">${et}</div>`;
+    card.onclick = () => selectOpp(opp);
+    list.appendChild(card);
+  }
+}
+
+function selectOpp(opp) {
+  selectedOpp = opp; renderOpps(); showAnalysis(opp);
+}
+
+function showAnalysis(opp) {
+  const area = document.getElementById('analysis-area');
+  area.innerHTML = '';
+  const cls = opp.isArb?'arb':opp.isClose?'close':'no';
+  const tag = opp.isArb
+    ? `<span style="font-size:8px;padding:2px 7px;border-radius:3px;background:rgba(0,230,118,0.12);color:var(--green);border:1px solid rgba(0,230,118,0.3);letter-spacing:1px">✓ ARB DETECTED</span>`
+    : opp.isClose
+      ? `<span style="font-size:8px;padding:2px 7px;border-radius:3px;background:rgba(255,183,0,0.1);color:var(--amber);border:1px solid rgba(255,183,0,0.3);letter-spacing:1px">~ CLOSE CALL</span>`
+      : `<span style="font-size:8px;padding:2px 7px;border-radius:3px;background:rgba(255,79,79,0.1);color:var(--red);border:1px solid rgba(255,79,79,0.3);letter-spacing:1px">✗ NO ARB</span>`;
+  const pc = opp.isArb?'green':opp.isClose?'amber':'red';
+  let stHtml = '';
+  for (const o of opp.outcomes) {
+    const b = opp.best[o];
+    stHtml += `<div class="stake-row"><span style="color:rgba(0,229,255,0.65)">${o}</span><span style="color:var(--g);font-weight:700">£${opp.stakes[o].toFixed(3)}</span></div><div class="stake-row" style="margin-bottom:6px"><span style="color:rgba(0,229,255,0.4);font-size:9px">@ ${b.effOdds.toFixed(3)} on ${b.bookmaker}${b.isBF?' (post-comm)':''}</span><span style="color:rgba(0,229,255,0.5);font-size:9px">→ £${(opp.stakes[o]*b.effOdds).toFixed(3)}</span></div>`;
+  }
+  const execTxt = opp.isArb
+    ? `<strong style="color:var(--green)">EXECUTE NOW:</strong><br>1. Place sportsbook bets first<br>2. Place Betfair bet immediately after<br>3. All within 60 seconds`
+    : opp.isClose
+      ? `<strong style="color:var(--amber)">WATCHING:</strong> ${((opp.cip-1)*100).toFixed(3)}% away from arb. Set auto-scan to 1 min.`
+      : `No edge. ${((opp.cip-1)*100).toFixed(2)}% over 100%.`;
+
+  const box = document.createElement('div');
+  box.className = `result-box ${cls}`;
+  box.innerHTML = `
+    <div style="margin-bottom:8px">${tag}</div>
+    <div style="font-size:12px;color:var(--g);font-weight:700;margin-bottom:8px">${opp.name}</div>
+    <div class="divline"></div>
+    <div class="result-row"><span class="result-label">Combined implied prob</span><span class="result-val ${pc}">${(opp.cip*100).toFixed(4)}%</span></div>
+    <div class="result-row"><span class="result-label">Edge</span><span class="result-val ${pc}">${opp.isArb?'+':''}${opp.edge.toFixed(4)}%</span></div>
+    <div class="result-row"><span class="result-label">Bankroll</span><span class="result-val">£${opp.bankroll.toFixed(2)}</span></div>
+    <div class="result-row"><span class="result-label">Guaranteed profit</span><span class="result-val ${pc}">£${opp.profit.toFixed(4)}</span></div>
+    <div class="divline"></div>
+    <div style="font-size:8px;color:rgba(0,229,255,0.45);letter-spacing:1px;margin-bottom:6px">EXACT STAKES</div>
+    <div class="stake-box">${stHtml}</div>
+    <div class="divline"></div>
+    <div style="font-size:9px;color:rgba(0,229,255,0.6);line-height:1.8">${execTxt}</div>
+    <button class="send-btn" onclick="sendToChat()">📋 COPY TO CLAUDE CHAT ↗</button>`;
+  area.appendChild(box);
+}
+
+function sendToChat() {
+  if (!selectedOpp) return;
+  const opp = selectedOpp;
+  const lines = opp.outcomes.map(o => {
+    const b = opp.best[o];
+    return `- ${o}: ${b.effOdds.toFixed(4)} @ ${b.bookmaker}${b.isBF?' (Betfair, 2% commission already applied)':''}  →  stake £${opp.stakes[o].toFixed(4)}`;
+  }).join('\n');
+
+  const msg = `ANALYSE THIS LIVE UK ARB OPPORTUNITY:\n\nEvent: ${opp.name}\nSport: ${opp.sport}\nKick-off: ${new Date(opp.commenceTime).toLocaleString('en-GB')}\nBankroll: £${opp.bankroll}\n\nBEST ODDS + STAKES:\n${lines}\n\nCombined implied probability: ${(opp.cip*100).toFixed(4)}%\nEdge: ${opp.edge.toFixed(4)}%\nEstimated guaranteed profit: £${opp.profit.toFixed(4)}\n\nPlease verify the maths, confirm if arb is real, give exact numbered execution steps, and flag specific risks.`;
+
+  navigator.clipboard.writeText(msg).then(() => {
+    const area = document.getElementById('analysis-area');
+    const note = document.createElement('div');
+    note.className = 'copied-note';
+    note.innerHTML = `<strong>✓ COPIED TO CLIPBOARD</strong><br><br>Now switch to your Claude chat tab and paste (Ctrl+V or Cmd+V).<br><br>I'll verify the maths and give you full execution instructions — completely free, no API credits needed.`;
+    area.appendChild(note);
+    area.scrollTop = area.scrollHeight;
+  }).catch(() => {
+    prompt('Copy this and paste into Claude chat:', msg);
+  });
+}
+</script>
+</body>
+</html>
